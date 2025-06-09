@@ -1,38 +1,34 @@
 pipeline {
     agent any
-
     environment {
-        IMAGE_NAME = 'devops-react-app'
-        CONTAINER_PORT = '80'
-        HOST_PORT = '80'
+        IMAGE_NAME = 'rockymca/react-app:latest'
     }
-
     stages {
-        stage('Clone Repo') {
+        stage('Build and Push') {
+            when {
+                branch 'main'
+            }
             steps {
-                git branch: 'dev', url: 'https://github.com/Rockymca/devops-build.git'
+                script {
+                    echo "🔧 Branch is main, proceeding with build and push..."
+                    sh 'docker build -t react-app:latest .'
+                    sh 'docker tag react-app:latest $IMAGE_NAME'
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+                        sh 'docker push $IMAGE_NAME'
+                    }
+                }
             }
         }
-
-        stage('Build Docker Image') {
-            steps {
-                sh 'docker build -t $IMAGE_NAME .'
+        stage('Skip Build') {
+            when {
+                not {
+                    branch 'main'
+                }
             }
-        }
-
-        stage('Deploy Container') {
             steps {
-                sh 'docker run -d -p $HOST_PORT:$CONTAINER_PORT $IMAGE_NAME'
+                echo "🛑 Not on main branch — skipping build and push."
             }
-        }
-    }
-
-    post {
-        failure {
-            echo 'Pipeline failed. Please check the logs.'
-        }
-        success {
-            echo 'Pipeline executed successfully.'
         }
     }
 }
