@@ -1,21 +1,15 @@
 #!/bin/bash
 
-# Variables
-DOCKER_USERNAME="rakeshvar"
-TAG="latest"
-CONTAINER_NAME="react-container"
+echo "Stopping and removing old containers..."
+docker-compose down
 
-# Pull latest image
-echo "Pulling latest image from Docker Hub..."
-docker pull $DOCKER_USERNAME/dev:$TAG
+echo "Building the image and starting containers..."
+docker-compose up -d --build
 
-# Stop and remove existing container (if any)
-echo "Stopping and removing old container (if exists)..."
-docker stop $CONTAINER_NAME || true
-docker rm $CONTAINER_NAME || true
+if [ $? -eq 0 ]; then
+  echo "Deployment successful!"
+else
+  echo "Deployment failed!"
+  exit 1
+fi
 
-# Run new container
-echo "Starting new container on port 80..."
-docker run -d --name $CONTAINER_NAME -p 80:80 $DOCKER_USERNAME/dev:$TAG
-
-echo "Deployment complete!"
